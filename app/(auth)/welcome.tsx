@@ -3,17 +3,22 @@ import ScreenWrapper from "@/components/ScreenWrapper";
 import Typo from "@/components/Typo";
 import { colors, spacingX, spacingY } from "@/constants/theme";
 import { verticalScale } from "@/utils/styling";
+import { useRouter } from "expo-router";
 import React from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 
 const Welcome = () => {
+  const router = useRouter();
   return (
     <ScreenWrapper>
       <View style={styles.container}>
         {/* login button & image */}
         <View>
-          <TouchableOpacity style={styles.loginButton}>
+          <TouchableOpacity
+            onPress={() => router.push("/(auth)/login")}
+            style={styles.loginButton}
+          >
             <Typo fontWeight={"500"}>Sign in</Typo>
           </TouchableOpacity>
 
@@ -25,40 +30,36 @@ const Welcome = () => {
           />
         </View>
 
-        {/* footer */}
-        <View style={styles.footer}>
+        <View style={styles.text}>
           <Animated.View
             entering={FadeInDown.duration(1000).springify()}
             style={{ alignItems: "center" }}
           >
             <Typo size={28} fontWeight={"800"}>
-              Always take control
+              Master Your Finance,
             </Typo>
             <Typo size={28} fontWeight={"800"}>
-              of your finances
+              One Tap at a Time
             </Typo>
           </Animated.View>
 
           <Animated.View
             entering={FadeInDown.duration(1000).delay(100).springify()}
-            style={{ alignItems: "center" , gap: 2}}
+            style={{ alignItems: "center", gap: 2 }}
           >
             <Typo size={17} color={colors.textLight}>
-              Finances must be arranged to set a better
+              Finances must be arranged to
             </Typo>
             <Typo size={17} color={colors.textLight}>
-              lifestyle in future
+              set a better lifestyle in future
             </Typo>
           </Animated.View>
 
           <Animated.View
-            entering={FadeInDown.duration(1000)
-              .delay(200)
-              .springify()
-              }
-            style={styles.buttonContainer}>
-
-            <Button>
+            entering={FadeInDown.duration(1000).delay(200).springify()}
+            style={styles.buttonContainer}
+          >
+            <Button onPress={() => router.push("/(auth)/register")}>
               <Typo size={22} color={colors.neutral900} fontWeight={"600"}>
                 Get Started
               </Typo>
@@ -88,7 +89,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-end",
     marginRight: spacingX._20,
   },
-  footer: {
+  text: {
     backgroundColor: colors.neutral900,
     alignItems: "center",
     paddingTop: verticalScale(30),
