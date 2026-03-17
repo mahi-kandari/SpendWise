@@ -1,24 +1,34 @@
-import { StyleSheet, Text, TextInput, View } from "react-native";
-import React from "react";
-import { InputProps } from "@/types";
 import { colors, radius, spacingX } from "@/constants/theme";
-import { vector } from "firebase/firestore";
+import { InputProps } from "@/types";
 import { verticalScale } from "@/utils/styling";
+import React from "react";
+import { StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 
 const Input = (props: InputProps) => {
+  const {
+    icon,
+    rightIcon,
+    onRightIconPress,
+    containerStyle,
+    inputStyle,
+    inputRef,
+    ...rest
+  } = props;
+
   return (
-    <View
-      style={[styles.container, props.containerStyle && props.containerStyle]}
-    >
-        {
-            props.icon && props.icon
-        }
+    <View style={[styles.container, containerStyle && containerStyle]}>
+      {icon && icon}
       <TextInput
-        style={[styles.input, props.inputStyle]}
+        style={[styles.input, inputStyle]}
         placeholderTextColor={colors.neutral400}
-        ref={props.inputRef && props.inputRef}
-        {...props}
+        ref={inputRef && inputRef}
+        {...rest}
       />
+      {rightIcon ? (
+        <TouchableOpacity onPress={onRightIconPress} activeOpacity={0.7}>
+          {rightIcon}
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 };

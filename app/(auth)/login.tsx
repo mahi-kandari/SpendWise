@@ -1,27 +1,37 @@
-import { StyleSheet, Text, TextInput, View } from 'react-native'
-import React, { useRef, useState } from 'react'
+import BackButton from "@/components/BackButton";
+import Button from "@/components/Button";
+import Input from "@/components/Input";
 import ScreenWrapper from "@/components/ScreenWrapper";
+import Typo from "@/components/Typo";
 import { colors, spacingX, spacingY } from "@/constants/theme";
 import { verticalScale } from "@/utils/styling";
-import BackButton from '@/components/BackButton';
-import Typo from '@/components/Typo';
-import Input from '@/components/Input';
-import * as Icons from 'phosphor-react-native';
-import Button from '@/components/Button';
+import { useRouter } from "expo-router";
+import * as Icons from "phosphor-react-native";
+import React, { useRef, useState } from "react";
+import { Alert, Pressable, StyleSheet, View } from "react-native";
 
 const Login = () => {
-    const emailRef = useRef("");
-    const passwordRef = useRef("");
-    const [isLoading, setLoading] = useState(false);
+  const emailRef = useRef("");
+  const passwordRef = useRef("");
+  const [isLoading, setLoading] = useState(false);
+  const [isPasswordVisible, setPasswordVisible] = useState(false);
+  const router = useRouter();
 
-    const handleSubmit = async () => {
-        
-    }
+  const handleSubmit = async () => {
+  if (!emailRef.current || !passwordRef.current) {
+    Alert.alert("Login", "Please fill all the fields");
+    return;
+  }
+  console.log("email:", emailRef.current);
+  console.log("password:", passwordRef.current);
+  console.log("good to go");
+  };
+
 
   return (
     <ScreenWrapper>
       <View style={styles.container}>
-        <BackButton iconSize={28}/>
+        <BackButton iconSize={28} />
         <View style={{ gap: 5, marginTop: spacingY._20 }}>
           <Typo size={30} fontWeight="800">
             Hey,
@@ -33,33 +43,50 @@ const Login = () => {
 
         {/* form */}
         <View style={styles.form}>
-            <Typo size={16} color={colors.textLighter}>
-              Login now to track all your expenses.
-            </Typo>
-            <Input 
-            placeholder='Enter your email' 
-            onChangeText={value=>emailRef.current = value}
-            icon={<Icons.At size={20} color={colors.neutral400}/>}
-            />
-            <Input 
-            placeholder='Enter your password' 
-            onChangeText={value=>passwordRef.current = value}
-            icon={<Icons.Lock size={20} color={colors.neutral400}/>}
-            secureTextEntry
-            />
+          <Typo size={16} color={colors.textLighter}>
+            Login now to track all your expenses.
+          </Typo>
+
+          <Input
+            placeholder="Enter your email"
+            onChangeText={(value) => (emailRef.current = value)}
+            icon={<Icons.At size={20} color={colors.neutral400} />}
+          />
+
+          <Input
+            placeholder="Enter your password"
+            onChangeText={(value) => (passwordRef.current = value)}
+            icon={<Icons.Lock size={20} color={colors.neutral400} />}
+            secureTextEntry={!isPasswordVisible}
+            rightIcon={
+              isPasswordVisible ? (
+                <Icons.Eye size={20} color={colors.neutral400} />
+              ) : (
+                <Icons.EyeSlash size={20} color={colors.neutral400} />
+              )
+            }
+            onRightIconPress={() => setPasswordVisible((prev) => !prev)}
+          />
         </View>
-        <Typo size={14} color={colors.text} style={{alignSelf: "flex-end"}}>
+        <Typo size={14} color={colors.text} style={{ alignSelf: "flex-end" }}>
           Forgot Password?
         </Typo>
 
-        <Button  onPress={handleSubmit} loading={isLoading}>
-            <Typo fontWeight={'700'} color={colors.black} size={21}>
-                Login
-            </Typo>
+        <Button onPress={handleSubmit} loading={isLoading}>
+          <Typo fontWeight={"700"} color={colors.black} size={21}>
+            Login
+          </Typo>
         </Button>
-      
-        <View style={styles.footer}></View>
-        
+
+        {/* footer */}
+        <View style={styles.footer}>
+          <Typo size={15}> Don&apos;t have an account?</Typo>
+          <Pressable onPress={() => router.navigate("/(auth)/register")}>
+            <Typo fontWeight={"700"} color={colors.primary}
+            size={15}>Sign up</Typo>
+          </Pressable>
+        </View>
+
       </View>
     </ScreenWrapper>
   );
