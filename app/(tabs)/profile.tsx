@@ -14,7 +14,7 @@ import Animated from 'react-native-reanimated';
 import { FadeInDown } from 'react-native-reanimated'
 import { signOut } from 'firebase/auth'
 import { auth } from '@/config/firebaseConfig'
-import { useRouter } from '@/.expo/types/router'
+import { useRouter } from 'expo-router'
 
 const Profile = () => {
   const { user } = useAuth();
@@ -24,13 +24,13 @@ const Profile = () => {
     {
       title: "Edit Profile",
       icon: <Icons.User size={26} color={colors.white} weight="fill" />,
-      // routeName: "/(modals)/profileModal",
+      routeName: "/(modals)/profileModal",
       bgColor: "#6366f1",
     },
     {
       title: "Settings",
       icon: <Icons.GearSix size={26} color={colors.white} weight="fill" />,
-      routeName: "/(modals)/profileModal",
+      // routeName: "/(modals)/profileModal",
       bgColor: "#059669",
     },
     {

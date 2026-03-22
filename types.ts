@@ -132,7 +132,7 @@ export type UserType = {
 
 export type UserDataType = {
   name: string;
-  image?: any;
+  image: string | null;
 };
 
 export type AuthContextType = {
