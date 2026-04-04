@@ -1,20 +1,82 @@
-import { StyleSheet, Text, TouchableOpacity, View, ScrollView } from "react-native";
-import React, { use } from "react";
 import Button from "@/components/Button";
-import Typo from "@/components/Typo";
-import { colors, spacingX , spacingY} from "@/constants/theme";
-import { signOut } from "firebase/auth";
-import { auth } from "@/config/firebaseConfig";
-import { useAuth } from "@/contexts/authContext";
-import ScreenWrapper from "@/components/ScreenWrapper";
-import { verticalScale } from "@/utils/styling";
-import * as Icons from "phosphor-react-native";
 import Homecard from "@/components/Homecard";
+import ScreenWrapper from "@/components/ScreenWrapper";
 import TransactionList from "@/components/TransactionList";
+import Typo from "@/components/Typo";
+import { colors, spacingX, spacingY } from "@/constants/theme";
+import { useAuth } from "@/contexts/authContext";
+import { getUserTransactions } from "@/services/transactionService";
+import { TransactionType } from "@/types";
+import { verticalScale } from "@/utils/styling";
+import { useFocusEffect } from "@react-navigation/native";
+import { useRouter } from "expo-router";
+import * as Icons from "phosphor-react-native";
+import React, { useCallback, useMemo, useState } from "react";
+import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
 const Home = () => {
-  const {user} = useAuth();
-  
+  const { user } = useAuth();
+  const router = useRouter();
+  const [transactions, setTransactions] = useState<TransactionType[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const totals = useMemo(() => {
+    const income = transactions
+      .filter((item) => item.type === "income")
+      .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+    const expense = transactions
+      .filter((item) => item.type !== "income")
+      .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+
+    return {
+      totalIncome: income,
+      totalExpense: expense,
+      totalBalance: income - expense,
+    };
+  }, [transactions]);
+
+  const fetchTransactions = useCallback(async () => {
+    if (!user?.uid) {
+      setTransactions([]);
+      return;
+    }
+
+    setLoading(true);
+    const res = await getUserTransactions(user.uid);
+    setLoading(false);
+
+    if (res.success) {
+      setTransactions((res.data as TransactionType[]) || []);
+      return;
+    }
+
+    setTransactions([]);
+  }, [user?.uid]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchTransactions();
+    }, [fetchTransactions]),
+  );
+
+  const onPressTransaction = (item: TransactionType) => {
+    router.push({
+      pathname: "/(modals)/TransactionModal",
+      params: {
+        id: item.id,
+        type: item.type,
+        amount: String(item.amount),
+        category: item.category || "",
+        description: item.description || "",
+        date:
+          typeof item.date === "string"
+            ? item.date
+            : item.date instanceof Date
+              ? item.date.toISOString()
+              : item.date?.toDate?.()?.toISOString() || "",
+      },
+    });
+  };
 
   return (
     <ScreenWrapper>
@@ -29,8 +91,11 @@ const Home = () => {
               {user?.name}
             </Typo>
           </View>
-          
-          <TouchableOpacity style={styles.searchIcon}>
+
+          <TouchableOpacity
+            style={styles.searchIcon}
+            onPress={() => router.push("/search")}
+          >
             <Icons.MagnifyingGlass
               size={verticalScale(22)}
               color={colors.neutral200}
@@ -40,16 +105,35 @@ const Home = () => {
         </View>
 
         <ScrollView
-        contentContainerStyle={styles.scrollViewStyle}
-        showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollViewStyle}
+          showsVerticalScrollIndicator={false}
         >
           <View>
-            <Homecard />
+            <Homecard
+              totalBalance={totals.totalBalance}
+              totalIncome={totals.totalIncome}
+              totalExpense={totals.totalExpense}
+            />
           </View>
 
-          <TransactionList title ="Recent Transactions"/>
-
+          <TransactionList
+            data={transactions}
+            loading={loading}
+            emptyListMessage="No Transaction added yet "
+            title="Recent Transactions"
+            onItemPress={onPressTransaction}
+          />
         </ScrollView>
+        <Button
+          style={styles.floatingButton}
+          onPress={() => router.push("/(modals)/TransactionModal")}
+        >
+          <Icons.Plus
+            size={verticalScale(24)}
+            color={colors.black}
+            weight="bold"
+          />
+        </Button>
       </View>
     </ScreenWrapper>
   );
@@ -59,9 +143,9 @@ export default Home;
 
 const styles = StyleSheet.create({
   container: {
-    flex:1,
+    flex: 1,
     paddingHorizontal: spacingX._20,
-    marginTop: verticalScale(8)
+    marginTop: verticalScale(8),
   },
   header: {
     flexDirection: "row",
@@ -73,6 +157,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.neutral700,
     padding: spacingX._10,
     borderRadius: 50,
+  },
+  searchInputContainer: {
+    marginBottom: spacingY._10,
   },
   floatingButton: {
     height: verticalScale(50),
@@ -88,4 +175,3 @@ const styles = StyleSheet.create({
     gap: spacingY._25,
   },
 });
-

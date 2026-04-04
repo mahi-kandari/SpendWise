@@ -1,22 +1,32 @@
-import { StyleSheet, Text, View } from 'react-native'
-import React from 'react'
-import { colors, spacingX , spacingY} from "@/constants/theme";
-import { scale } from '@/utils/styling';
-import { ImageBackground } from 'expo-image';
-import Typo from './Typo';
+import { colors, spacingX, spacingY } from "@/constants/theme";
+import { scale, verticalScale } from "@/utils/styling";
+import { ImageBackground } from "expo-image";
 import * as Icons from "phosphor-react-native";
-import { verticalScale } from "@/utils/styling";
+import React from "react";
+import { StyleSheet, View } from "react-native";
+import Typo from "./Typo";
 
+type HomecardProps = {
+  totalBalance?: number;
+  totalIncome?: number;
+  totalExpense?: number;
+};
 
-const Homecard = () => {
+const formatAmount = (value: number) => `₹${value.toFixed(2)}`;
+
+const Homecard = ({
+  totalBalance = 0,
+  totalIncome = 0,
+  totalExpense = 0,
+}: HomecardProps) => {
   return (
     <ImageBackground
-    source= {require("../assets/images/card.png")}
-    resizeMode= "stretch"
-    style= {styles.bgImage}
+      source={require("../assets/images/card.png")}
+      resizeMode="stretch"
+      style={styles.bgImage}
     >
-        <View style={styles.container}>
-            <View>
+      <View style={styles.container}>
+        <View>
           {/* total balance */}
           <View style={styles.totalBalanceRow}>
             <Typo color={colors.neutral800} size={17} fontWeight={"500"}>
@@ -29,7 +39,7 @@ const Homecard = () => {
             />
           </View>
           <Typo color={colors.black} size={30} fontWeight={"bold"}>
-            $2343.23
+            {formatAmount(totalBalance)}
           </Typo>
         </View>
         {/* total expense and income */}
@@ -44,15 +54,15 @@ const Homecard = () => {
                   weight="bold"
                 />
               </View>
-              <Typo size ={16} color={colors.neutral700} fontWeight={"500"}>
+              <Typo size={16} color={colors.neutral700} fontWeight={"500"}>
                 Income
               </Typo>
             </View>
-            <View style= {{alignSelf: "center"}}>
-                <Typo size= {17} color={colors.green} fontWeight={"600"}>
-                    $ 2342
-                </Typo>
-              </View>
+            <View style={{ alignSelf: "center" }}>
+              <Typo size={17} color={colors.green} fontWeight={"600"}>
+                {formatAmount(totalIncome)}
+              </Typo>
+            </View>
           </View>
 
           {/* expense  */}
@@ -65,26 +75,23 @@ const Homecard = () => {
                   weight="bold"
                 />
               </View>
-              <Typo size ={16} color={colors.neutral700} fontWeight={"500"}>
+              <Typo size={16} color={colors.neutral700} fontWeight={"500"}>
                 Expense
               </Typo>
             </View>
-            <View style= {{alignSelf: "center"}}>
-                <Typo size= {17} color={colors.rose} fontWeight={"600"}>
-                    $ 600
-                </Typo>
-              </View>
+            <View style={{ alignSelf: "center" }}>
+              <Typo size={17} color={colors.rose} fontWeight={"600"}>
+                {formatAmount(totalExpense)}
+              </Typo>
+            </View>
           </View>
-
-
-
         </View>
-        </View>
+      </View>
     </ImageBackground>
   );
 };
 
-export default Homecard
+export default Homecard;
 
 const styles = StyleSheet.create({
   bgImage: {
@@ -97,7 +104,6 @@ const styles = StyleSheet.create({
     height: "87%",
     width: "100%",
     justifyContent: "space-between",
-    
   },
   totalBalanceRow: {
     flexDirection: "row",
@@ -119,7 +125,5 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacingY._7,
-    }
+  },
 });
-
-

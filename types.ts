@@ -2,12 +2,12 @@ import { Timestamp } from "firebase/firestore";
 import { Icon } from "phosphor-react-native";
 import React, { ReactNode } from "react";
 import {
-    TextInput,
-    TextInputProps,
-    TextProps,
-    TextStyle,
-    TouchableOpacityProps,
-    ViewStyle
+  TextInput,
+  TextInputProps,
+  TextProps,
+  TextStyle,
+  TouchableOpacityProps,
+  ViewStyle,
 } from "react-native";
 
 export type ScreenWrapperProps = {
@@ -74,7 +74,6 @@ export type TransactionType = {
   description?: string;
   image?: any;
   uid?: string;
-  walletId: string;
 };
 export type CategoryType = {
   label: string;
@@ -92,11 +91,14 @@ export type TransactionListType = {
   title?: string;
   loading?: boolean;
   emptyListMessage?: string;
+  onItemPress?: (item: TransactionType) => void;
+  fullHeight?: boolean;
 };
 
 export type TransactionItemProps = {
   item: TransactionType;
   index: number;
+  handleClick?: (item: TransactionType) => void;
 };
 
 export interface InputProps extends TextInputProps {
