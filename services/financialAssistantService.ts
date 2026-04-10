@@ -1,12 +1,10 @@
 import { transactionCategories } from "@/constants/data";
 import {
-  createOrUpdateTransaction,
-  deleteTransaction,
-  getUserTransactions,
+    createOrUpdateTransaction,
+    deleteTransaction,
+    getUserTransactions,
 } from "@/services/transactionService";
 import { TransactionType } from "@/types";
-
-export const GEMINI_API_KEY = "AIzaSyAtiUmbhJ5zj1x3QnEbqV7kJ3uiD1v1UrU";
 
 type AssistantMessageInput = {
   message: string;
