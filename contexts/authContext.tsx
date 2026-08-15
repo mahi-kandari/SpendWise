@@ -1,9 +1,14 @@
 import { useRouter } from "expo-router";
+import {
+    createUserWithEmailAndPassword,
+    onAuthStateChanged,
+    signInWithEmailAndPassword,
+    updateProfile,
+} from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { createContext, useContext, useEffect, useState } from "react";
 import { auth, firestore } from "../config/firebaseConfig";
 import { AuthContextType, UserType } from "../types";
-import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword } from "firebase/auth";
-import { setDoc, doc, getDoc } from "firebase/firestore";
-import { createContext, useContext, useEffect, useState } from "react";
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -12,25 +17,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [user, setUser] = useState<UserType>(null);
   const router = useRouter();
-  
+
   useEffect(() => {
-  const unsub = onAuthStateChanged(auth, (firebaseUser) => {
-    if (firebaseUser) {
-      setUser({
-        uid: firebaseUser.uid,
-        email: firebaseUser.email,
-        name: firebaseUser.displayName,
-      });
-      updateUserData(firebaseUser.uid);
-      router.replace("/(tabs)");
-    } else {
+    const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const fallbackUser: UserType = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          name: firebaseUser.displayName,
+        };
+
+        const hydratedUser = await updateUserData(
+          firebaseUser.uid,
+          fallbackUser,
+        );
+        setUser(hydratedUser);
+        router.replace("/(tabs)");
+        return;
+      }
+
       setUser(null);
       router.replace("/(auth)/welcome");
-    }
-  });
+    });
 
-  return () => unsub();
-}, [router]);
+    return () => unsub();
+  }, [router]);
 
   const login = async (email: string, password: string) => {
     try {
@@ -51,20 +62,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const register = async (email: string, password: string, name: string) => {
-  try {
-    let response = await createUserWithEmailAndPassword(
-      auth,
-      email,
-      password
-    );
-    await setDoc(doc(firestore, "users", response?.user?.uid), {
-      name,
-      email,
-      uid: response?.user?.uid,
-    });
-    return { success: true };
-  } catch (error: any) {
+  const register = async (name: string, email: string, password: string) => {
+    try {
+      const response = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password,
+      );
+      const trimmedName = name.trim();
+
+      await updateProfile(response.user, {
+        displayName: trimmedName,
+      });
+
+      await setDoc(doc(firestore, "users", response.user.uid), {
+        name: trimmedName,
+        email,
+        uid: response.user.uid,
+      });
+
+      return { success: true };
+    } catch (error: any) {
       let msg = error.message;
       console.log("Error message: ", msg);
       if (msg.includes("auth/invalid-credential")) {
@@ -76,10 +94,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (msg.includes("auth/email-already-in-use")) {
         msg = "This email is already in use.";
       }
-    return { success: false, msg };
+      return { success: false, msg };
     }
   };
-  const updateUserData = async (uid: string) => {
+
+  const updateUserData = async (
+    uid: string,
+    fallbackUser: UserType = null,
+  ): Promise<UserType> => {
     try {
       const docRef = doc(firestore, "users", uid);
       const docSnap = await getDoc(docRef);
@@ -92,25 +114,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           name: data.name || null,
           image: data.image || null,
         };
-      setUser({ ...userData });
+        return { ...userData };
       }
+
+      return fallbackUser;
     } catch (error: any) {
-      let msg = error.message;
-      // return { success: false, msg };
       console.log("error: ", error);
+      return fallbackUser;
     }
+
+    return fallbackUser;
   };
+
   const contextValue: AuthContextType = {
     user,
     setUser,
     login,
     register,
     updateUserData,
-  }
+  };
   return (
-    <AuthContext.Provider value={contextValue}>
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
   );
 };
 

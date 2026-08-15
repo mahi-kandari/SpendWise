@@ -17,7 +17,7 @@ const Login = () => {
   const [isLoading, setLoading] = useState(false);
   const [isPasswordVisible, setPasswordVisible] = useState(false);
   const router = useRouter();
-  const { login : loginUser} = useAuth();
+  const { login: loginUser } = useAuth();
 
   const handleSubmit = async () => {
     if (!emailRef.current || !passwordRef.current) {
@@ -28,15 +28,14 @@ const Login = () => {
     const res = await loginUser(emailRef.current, passwordRef.current);
     setLoading(false);
     if (!res.success) {
-      Alert.alert("Login", res.msg );
+      Alert.alert("Login", res.msg);
     }
   };
-
 
   return (
     <ScreenWrapper>
       <View style={styles.container}>
-        <BackButton iconSize={28} />
+        <BackButton iconSize={28} fallbackRoute="/(auth)/welcome" />
         <View style={{ gap: 5, marginTop: spacingY._20 }}>
           <Typo size={30} fontWeight="800">
             Hey,
@@ -87,11 +86,11 @@ const Login = () => {
         <View style={styles.footer}>
           <Typo size={15}> Don&apos;t have an account?</Typo>
           <Pressable onPress={() => router.navigate("/(auth)/register")}>
-            <Typo fontWeight={"700"} color={colors.primary}
-            size={15}>Sign up</Typo>
+            <Typo fontWeight={"700"} color={colors.primary} size={15}>
+              Sign up
+            </Typo>
           </Pressable>
         </View>
-
       </View>
     </ScreenWrapper>
   );

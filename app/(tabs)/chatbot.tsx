@@ -103,7 +103,8 @@ const Chatbot = () => {
               />
 
               <Typo size={20} fontWeight={"500"} style={styles.startPromptText}>
-                Hi {greetingName}, I’m your SpendWise assistant. How can I assist you today?
+                Hi {greetingName}, I’m your SpendWise assistant. How can I
+                assist you today?
               </Typo>
             </View>
           </View>

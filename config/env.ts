@@ -39,4 +39,6 @@ export const firebaseEnvConfig = {
   ),
 };
 
-export const geminiApiKey = process.env.EXPO_PUBLIC_GEMINI_API_KEY || "";
+export const ollamaBaseUrl =
+  process.env.EXPO_PUBLIC_OLLAMA_BASE_URL || "http://localhost:11434";
+export const ollamaModel = process.env.EXPO_PUBLIC_OLLAMA_MODEL || "qwen2.5:3b";

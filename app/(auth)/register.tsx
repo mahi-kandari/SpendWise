@@ -18,21 +18,25 @@ const Register = () => {
   const [isLoading, setLoading] = useState(false);
   const [isPasswordVisible, setPasswordVisible] = useState(false);
   const router = useRouter();
-  const { register : registerUser} = useAuth();
+  const { register: registerUser } = useAuth();
 
   const handleSubmit = async () => {
-  if (!emailRef.current || !passwordRef.current || !nameRef.current) {
-    Alert.alert("Sign Up", "Please fill all the fields");
-    return;
-  }
-  setLoading(true);
-  const res= await registerUser(emailRef.current, passwordRef.current, nameRef.current);
+    if (!emailRef.current || !passwordRef.current || !nameRef.current) {
+      Alert.alert("Sign Up", "Please fill all the fields");
+      return;
+    }
+    setLoading(true);
+    const res = await registerUser(
+      nameRef.current,
+      emailRef.current,
+      passwordRef.current,
+    );
 
-  setLoading(false);
-  console.log("register result: ", res);
-  if(!res.success){
-    Alert.alert("Sign Up", res.msg || "An error occurred");
-  }
+    setLoading(false);
+    console.log("register result: ", res);
+    if (!res.success) {
+      Alert.alert("Sign Up", res.msg || "An error occurred");
+    }
   };
 
   return (
@@ -92,11 +96,11 @@ const Register = () => {
         <View style={styles.footer}>
           <Typo size={15}> Already have an account?</Typo>
           <Pressable onPress={() => router.navigate("/(auth)/login")}>
-            <Typo fontWeight={"700"} color={colors.primary}
-            size={15}>Login</Typo>
+            <Typo fontWeight={"700"} color={colors.primary} size={15}>
+              Login
+            </Typo>
           </Pressable>
         </View>
-
       </View>
     </ScreenWrapper>
   );
@@ -134,4 +138,4 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: verticalScale(15),
   },
-})
+});

@@ -1,8 +1,9 @@
+import { ollamaBaseUrl, ollamaModel } from "@/config/env";
 import { transactionCategories } from "@/constants/data";
 import {
-    createOrUpdateTransaction,
-    deleteTransaction,
-    getUserTransactions,
+  createOrUpdateTransaction,
+  deleteTransaction,
+  getUserTransactions,
 } from "@/services/transactionService";
 import { TransactionType } from "@/types";
 
@@ -14,6 +15,12 @@ type AssistantMessageInput = {
 
 type AssistantActionResult = {
   reply: string;
+};
+
+type OllamaChatResponse = {
+  message?: {
+    content?: string;
+  };
 };
 
 type ParsedIntent =
@@ -305,6 +312,164 @@ const loadUserTransactions = async (uid: string) => {
   }
 
   return (res.data || []).filter(Boolean) as TransactionType[];
+};
+
+const buildTransactionsContext = (transactions: TransactionType[]) => {
+  const incomes = transactions.filter((item) => item.type === "income");
+  const expenses = transactions.filter((item) => item.type === "expense");
+  const totalIncome = incomes.reduce(
+    (sum, item) => sum + (Number(item.amount) || 0),
+    0,
+  );
+  const totalExpense = expenses.reduce(
+    (sum, item) => sum + (Number(item.amount) || 0),
+    0,
+  );
+
+  const categoryTotals = new Map<string, number>();
+  expenses.forEach((item) => {
+    const category = item.category || "others";
+    categoryTotals.set(
+      category,
+      (categoryTotals.get(category) || 0) + (Number(item.amount) || 0),
+    );
+  });
+
+  const rankedCategories = [...categoryTotals.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(
+      ([category, amount]) =>
+        `${getCategoryLabel(category)}: ${formatCurrency(amount)}`,
+    )
+    .join(", ");
+
+  return {
+    totalIncome,
+    totalExpense,
+    balance: totalIncome - totalExpense,
+    txCount: transactions.length,
+    topCategories: rankedCategories || "No expense categories yet",
+  };
+};
+
+const askOllamaAssistant = async ({
+  message,
+  userName,
+  transactions,
+  extraInsight,
+}: {
+  message: string;
+  userName?: string | null;
+  transactions: TransactionType[];
+  extraInsight?: string;
+}): Promise<string> => {
+  const buildCandidateBaseUrls = (baseUrl: string) => {
+    const normalized = baseUrl.replace(/\/+$/, "");
+    const candidates = [normalized];
+
+    if (normalized.includes("127.0.0.1")) {
+      candidates.push(normalized.replace("127.0.0.1", "localhost"));
+    }
+
+    if (normalized.includes("localhost")) {
+      candidates.push(normalized.replace("localhost", "127.0.0.1"));
+    }
+
+    return [...new Set(candidates)];
+  };
+
+  const summary = buildTransactionsContext(transactions);
+
+  const systemPrompt = [
+    "You are SpendWise, a concise financial assistant.",
+    "Use only the user data context provided below when stating numbers.",
+    "If data is missing, say that clearly and suggest what to log next.",
+    "Keep answer practical and concise (3-8 lines).",
+    "Use INR currency format with symbol ₹.",
+    "Do not invent transactions.",
+  ].join(" ");
+
+  const contextBlock = [
+    `User: ${userName || "there"}`,
+    `Transactions tracked: ${summary.txCount}`,
+    `Total income: ${formatCurrency(summary.totalIncome)}`,
+    `Total expense: ${formatCurrency(summary.totalExpense)}`,
+    `Balance: ${formatCurrency(summary.balance)}`,
+    `Top expense categories: ${summary.topCategories}`,
+    extraInsight ? `Additional insight: ${extraInsight}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const candidateUrls = buildCandidateBaseUrls(ollamaBaseUrl);
+  let lastStatusCode: number | null = null;
+
+  try {
+    for (const baseUrl of candidateUrls) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+
+      try {
+        const response = await fetch(`${baseUrl}/api/chat`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: ollamaModel,
+            stream: false,
+            messages: [
+              { role: "system", content: systemPrompt },
+              {
+                role: "user",
+                content: `${contextBlock}\n\nQuestion: ${message}`,
+              },
+            ],
+            options: {
+              temperature: 0.3,
+            },
+          }),
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          lastStatusCode = response.status;
+          if (response.status === 404) {
+            return `Ollama is reachable, but model '${ollamaModel}' was not found. Run: ollama pull ${ollamaModel}`;
+          }
+          continue;
+        }
+
+        const data = (await response.json()) as OllamaChatResponse;
+        const reply = data?.message?.content?.trim();
+
+        if (!reply) {
+          return "Ollama returned an empty response. Try another prompt or check the selected model.";
+        }
+
+        return reply;
+      } catch (error: any) {
+        if (error?.name === "AbortError") {
+          continue;
+        }
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+
+    if (lastStatusCode) {
+      return `I reached Ollama but got status ${lastStatusCode}. Verify model '${ollamaModel}' and Ollama server logs.`;
+    }
+
+    return `I could not connect to Ollama. Start it with 'ollama serve'. Tried: ${candidateUrls.join(", ")}`;
+  } catch (error: any) {
+    if (error?.name === "AbortError") {
+      return "Ollama response timed out. Try a shorter question or a lighter model.";
+    }
+
+    return "I could not connect to Ollama. Start it with 'ollama serve' and verify the base URL in your env settings.";
+  }
 };
 
 const getWeekRange = () => {
@@ -730,45 +895,39 @@ export const handleFinancialAssistantMessage = async ({
     };
   }
 
+  let extraInsight = "";
+
   if (isWeeklyTopSpendQuery(normalizedMessage)) {
-    return {
-      reply: buildWeeklySpendingReply(transactions),
-    };
+    extraInsight = buildWeeklySpendingReply(transactions);
   }
 
   if (isWeeklyLowestSpendQuery(normalizedMessage)) {
-    return {
-      reply: buildWeeklyLowestSpendingReply(transactions),
-    };
+    extraInsight = buildWeeklyLowestSpendingReply(transactions);
   }
 
   if (isGreetingMessage(normalizedMessage)) {
-    return {
-      reply:
-        "Hey! I’m your expense assistant. Ask me things like where you spent the most this week, your top categories, or ask me to add, update, or delete a transaction.",
-    };
+    extraInsight = `The user greeted you. Respond warmly and mention you can help with spending insights and budgeting based on their tracked data.`;
   }
 
   if (!isSpendingAdviceQuery(normalizedMessage)) {
-    return {
-      reply: buildUnclearMessageReply(),
-    };
+    extraInsight = `${buildUnclearMessageReply()} Ask one clarifying question after your answer.`;
   }
 
   if (isAmbiguousAdviceMessage(normalizedMessage)) {
-    return {
-      reply:
-        "I’m your expense assistant, but I need a bit more detail to answer that. You can ask: 'lowest spending category this week', 'highest spending this month', or 'where did I spend the most this week?'.",
-    };
+    extraInsight =
+      "The user request is ambiguous. Ask one concise clarifying question and include 2 example prompts.";
   }
 
   if (isFinancialAdviceQuery(normalizedMessage)) {
-    return {
-      reply: buildFinancialCoachingReply(transactions),
-    };
+    extraInsight = buildFinancialCoachingReply(transactions);
   }
 
   return {
-    reply: buildGeneralSpendingReply(transactions),
+    reply: await askOllamaAssistant({
+      message,
+      userName,
+      transactions,
+      extraInsight: extraInsight || buildGeneralSpendingReply(transactions),
+    }),
   };
 };

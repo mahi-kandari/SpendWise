@@ -16,6 +16,14 @@ import {
     where,
 } from "firebase/firestore";
 
+const getFirestoreErrorMessage = (error: any, fallback: string): string => {
+  if (error?.code === "permission-denied") {
+    return "Firebase permission denied. Publish your Firestore rules and ensure you are logged in with the same Firebase project.";
+  }
+
+  return error?.message || fallback;
+};
+
 export const createOrUpdateTransaction = async (
   transaction: TransactionType,
 ): Promise<ResponseType> => {
@@ -45,7 +53,7 @@ export const createOrUpdateTransaction = async (
     console.log("error saving transaction:", error);
     return {
       success: false,
-      msg: error?.message || "Unable to save transaction",
+      msg: getFirestoreErrorMessage(error, "Unable to save transaction"),
     };
   }
 };
@@ -58,7 +66,7 @@ export const deleteTransaction = async (id: string): Promise<ResponseType> => {
     console.log("error deleting transaction:", error);
     return {
       success: false,
-      msg: error?.message || "Unable to delete transaction",
+      msg: getFirestoreErrorMessage(error, "Unable to delete transaction"),
     };
   }
 };
@@ -93,7 +101,7 @@ export const getUserTransactions = async (
     console.log("error getting transactions:", error);
     return {
       success: false,
-      msg: error?.message || "Unable to fetch transactions",
+      msg: getFirestoreErrorMessage(error, "Unable to fetch transactions"),
       data: [],
     };
   }
